@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personal Journal</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Discipline OS</p>
+        <h1>Personal Journal</h1>
+        <p class="subtitle">Plan your day, protect focus, and reflect before it ends.</p>
+      </div>
+      <div class="header-controls">
+        <label class="date-control">
+          <span>Date</span>
+          <input type="date" id="date-picker" />
+        </label>
+        <button id="focus-mode-toggle" class="ghost-button" type="button">Enter Focus Mode</button>
+      </div>
+    </header>
+
+    <section class="hero-card">
+      <div class="hero-copy">
+        <p class="eyebrow">Daily Flow</p>
+        <h2 id="workflow-title">Build momentum for today</h2>
+        <p id="workflow-message">Start by choosing a few meaningful tasks and a clear intention for the day.</p>
+      </div>
+      <div class="hero-metrics">
+        <article class="metric-card">
+          <span class="metric-label">Tasks done</span>
+          <strong id="metric-completed">0 / 0</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Focus sessions</span>
+          <strong id="metric-pomodoros">0</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Reflection</span>
+          <strong id="metric-journal">Not started</strong>
+        </article>
+      </div>
+    </section>
+
+    <main class="flow-grid">
+      <section class="panel" id="plan-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Step 1</p>
+            <h2>Plan</h2>
+          </div>
+          <span class="panel-hint">Define the day before you enter focus.</span>
+        </div>
+
+        <div class="field-group">
+          <label for="day-intention">Daily intention</label>
+          <textarea id="day-intention" rows="3" placeholder="What matters most today?"></textarea>
+        </div>
+
+        <div class="task-entry">
+          <input id="new-task" type="text" placeholder="Add a task for today" />
+          <button id="add-task" type="button">Add task</button>
+        </div>
+
+        <ul id="task-list" class="task-list"></ul>
+      </section>
+
+      <section class="panel focus-panel" id="focus-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Step 2</p>
+            <h2>Focus</h2>
+          </div>
+          <span class="panel-hint">Run timer sessions against a selected task.</span>
+        </div>
+
+        <div class="focus-target">
+          <label for="task-select">Current task</label>
+          <select id="task-select">
+            <option value="">Choose a task to focus on</option>
+          </select>
+        </div>
+
+        <div class="timer-stage" id="timer-stage" data-session="focus">
+          <p id="session-label" class="session-label">Focus session</p>
+          <div id="pomodoro-display" class="timer-display">25:00</div>
+          <p id="session-message" class="session-message">Pick a task and start a focus block.</p>
+        </div>
+
+        <div class="timer-controls">
+          <button id="start-pomodoro" type="button">Start</button>
+          <button id="pause-pomodoro" type="button" class="ghost-button">Pause</button>
+          <button id="reset-pomodoro" type="button" class="ghost-button">Reset</button>
+          <button id="skip-session" type="button" class="ghost-button">Skip</button>
+        </div>
+
+        <div class="timer-settings">
+          <label>
+            <span>Focus</span>
+            <input type="number" id="focus-duration" min="5" max="90" value="25" />
+          </label>
+          <label>
+            <span>Short break</span>
+            <input type="number" id="break-duration" min="1" max="30" value="5" />
+          </label>
+          <label>
+            <span>Long break</span>
+            <input type="number" id="longbreak-duration" min="5" max="60" value="15" />
+          </label>
+        </div>
+
+        <div class="focus-extras">
+          <label>
+            <span>Ambient sound</span>
+            <select id="ambient-select">
+              <option value="">None</option>
+              <option value="rain">Rain</option>
+              <option value="wind">Wind</option>
+              <option value="waterfall">Waterfall</option>
+              <option value="snow">Snow</option>
+            </select>
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="auto-start-breaks" checked />
+            <span>Auto-start breaks</span>
+          </label>
+        </div>
+
+        <div class="focus-summary">
+          <div>
+            <span class="metric-label">Today</span>
+            <strong id="pomodoro-count">0 sessions</strong>
+          </div>
+          <div>
+            <span class="metric-label">Streak</span>
+            <strong id="pomodoro-streak">0 days</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="reflect-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Step 3</p>
+            <h2>Reflect</h2>
+          </div>
+          <span class="panel-hint">Capture wins, friction, and the next adjustment.</span>
+        </div>
+
+        <div class="field-group">
+          <label for="journal-entry">End-of-day reflection</label>
+          <textarea id="journal-entry" rows="10" placeholder="What went well? What pulled you off track? What will you adjust tomorrow?"></textarea>
+        </div>
+
+        <div class="reflect-actions">
+          <button id="save-journal" type="button">Save reflection</button>
+          <p id="journal-status" class="status-text">Reflection not saved yet.</p>
+        </div>
+
+        <div class="insight-card">
+          <h3>Day snapshot</h3>
+          <ul id="insight-list" class="insight-list"></ul>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
