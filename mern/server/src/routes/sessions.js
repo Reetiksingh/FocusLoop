@@ -1,10 +1,24 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.js";
+import {
+  cancelCurrentSession,
+  completeCurrentSession,
+  createSession,
+  getActiveSession,
+  listSessions,
+  pauseCurrentSession,
+  resumeCurrentSession
+} from "../controllers/sessionController.js";
+import { protect } from "../middleware/auth.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const sessionsRouter = Router();
 
-sessionsRouter.use(requireAuth);
+sessionsRouter.use(protect);
 
-sessionsRouter.post("/", (req, res) => {
-  res.status(501).json({ message: "Create focus session route scaffolded." });
-});
+sessionsRouter.get("/", asyncHandler(listSessions));
+sessionsRouter.get("/active", asyncHandler(getActiveSession));
+sessionsRouter.post("/", asyncHandler(createSession));
+sessionsRouter.patch("/:sessionId/pause", asyncHandler(pauseCurrentSession));
+sessionsRouter.patch("/:sessionId/resume", asyncHandler(resumeCurrentSession));
+sessionsRouter.patch("/:sessionId/complete", asyncHandler(completeCurrentSession));
+sessionsRouter.delete("/:sessionId", asyncHandler(cancelCurrentSession));

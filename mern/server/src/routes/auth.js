@@ -1,15 +1,12 @@
 import { Router } from "express";
+import { getMe, login, logout, refresh, register } from "../controllers/authController.js";
+import { optionalAuth, protect } from "../middleware/auth.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const authRouter = Router();
 
-authRouter.post("/signup", (req, res) => {
-  res.status(501).json({ message: "Signup route scaffolded." });
-});
-
-authRouter.post("/login", (req, res) => {
-  res.status(501).json({ message: "Login route scaffolded." });
-});
-
-authRouter.post("/logout", (req, res) => {
-  res.status(204).send();
-});
+authRouter.post("/register", asyncHandler(register));
+authRouter.post("/login", asyncHandler(login));
+authRouter.post("/refresh", asyncHandler(refresh));
+authRouter.get("/me", protect, asyncHandler(getMe));
+authRouter.post("/logout", optionalAuth, asyncHandler(logout));

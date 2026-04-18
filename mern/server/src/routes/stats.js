@@ -1,14 +1,11 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.js";
+import { getHeatmapStats, getSummary } from "../controllers/statsController.js";
+import { protect } from "../middleware/auth.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const statsRouter = Router();
 
-statsRouter.use(requireAuth);
+statsRouter.use(protect);
 
-statsRouter.get("/summary", (req, res) => {
-  res.status(501).json({ message: "Stats summary route scaffolded." });
-});
-
-statsRouter.get("/heatmap", (req, res) => {
-  res.status(501).json({ message: "Heatmap route scaffolded." });
-});
+statsRouter.get("/summary", asyncHandler(getSummary));
+statsRouter.get("/heatmap", asyncHandler(getHeatmapStats));

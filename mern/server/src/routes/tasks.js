@@ -1,22 +1,13 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.js";
+import { createTask, deleteTask, listTasks, updateTask } from "../controllers/taskController.js";
+import { protect } from "../middleware/auth.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const tasksRouter = Router();
 
-tasksRouter.use(requireAuth);
+tasksRouter.use(protect);
 
-tasksRouter.get("/", (req, res) => {
-  res.status(501).json({ message: "Tasks list route scaffolded." });
-});
-
-tasksRouter.post("/", (req, res) => {
-  res.status(501).json({ message: "Create task route scaffolded." });
-});
-
-tasksRouter.patch("/:taskId", (req, res) => {
-  res.status(501).json({ message: "Update task route scaffolded." });
-});
-
-tasksRouter.delete("/:taskId", (req, res) => {
-  res.status(501).json({ message: "Delete task route scaffolded." });
-});
+tasksRouter.get("/", asyncHandler(listTasks));
+tasksRouter.post("/", asyncHandler(createTask));
+tasksRouter.patch("/:taskId", asyncHandler(updateTask));
+tasksRouter.delete("/:taskId", asyncHandler(deleteTask));

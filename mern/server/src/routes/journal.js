@@ -1,14 +1,11 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.js";
+import { getJournalByDate, upsertJournal } from "../controllers/journalController.js";
+import { protect } from "../middleware/auth.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const journalRouter = Router();
 
-journalRouter.use(requireAuth);
+journalRouter.use(protect);
 
-journalRouter.get("/:date", (req, res) => {
-  res.status(501).json({ message: "Journal fetch route scaffolded." });
-});
-
-journalRouter.put("/:date", (req, res) => {
-  res.status(501).json({ message: "Journal save route scaffolded." });
-});
+journalRouter.get("/:date", asyncHandler(getJournalByDate));
+journalRouter.put("/:date", asyncHandler(upsertJournal));
