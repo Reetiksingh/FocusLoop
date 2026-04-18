@@ -8,6 +8,7 @@ export function StatsHeader() {
   const selectedDate = useWorkflowStore(state => state.selectedDate);
   const setSelectedDate = useWorkflowStore(state => state.setSelectedDate);
   const summary = useWorkflowStore(state => state.summary);
+  const weeklyReport = useWorkflowStore(state => state.weeklyReport);
   const heatmap = useWorkflowStore(state => state.heatmap);
 
   return (
@@ -38,6 +39,7 @@ export function StatsHeader() {
             Use the top section to plan and reflect, then drop into the full-width focus panel to do the
             work.
           </p>
+          <p className="micro-copy">{weeklyReport.headline}</p>
         </div>
 
         <div className="stats-grid">

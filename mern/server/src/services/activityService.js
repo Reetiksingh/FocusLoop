@@ -12,11 +12,11 @@ function getActivityLevel(score) {
   return 4;
 }
 
-export async function syncDailyActivity({ userId, date }) {
+export async function syncDailyActivity({ userId, date, dbSession = null }) {
   const [completedTasks, focusSessions, journal] = await Promise.all([
-    Task.countDocuments({ userId, date, status: "completed" }),
-    FocusSession.countDocuments({ userId, date, sessionType: "focus", status: "completed" }),
-    Journal.findOne({ userId, date }).lean()
+    Task.countDocuments({ userId, date, status: "completed" }).session(dbSession),
+    FocusSession.countDocuments({ userId, date, sessionType: "focus", status: "completed" }).session(dbSession),
+    Journal.findOne({ userId, date }).session(dbSession).lean()
   ]);
 
   const reflectionSaved = Boolean(journal && (journal.content.trim() || journal.intention.trim()));
@@ -25,7 +25,7 @@ export async function syncDailyActivity({ userId, date }) {
   return DailyActivity.findOneAndUpdate(
     { userId, date },
     { completedTasks, focusSessions, reflectionSaved, score },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, new: true, setDefaultsOnInsert: true, session: dbSession }
   );
 }
 

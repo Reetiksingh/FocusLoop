@@ -1,6 +1,24 @@
 import { useState } from "react";
 import { useWorkflowStore } from "../../store/useWorkflowStore";
 
+const ROUTINE_TEMPLATES = [
+  {
+    id: "deep-work",
+    name: "Deep Work Morning",
+    tasks: ["Review top priority", "Finish one deep work block", "Capture key learning"]
+  },
+  {
+    id: "workout",
+    name: "Workout Day",
+    tasks: ["Workout session", "Hydrate and stretch", "Log recovery notes"]
+  },
+  {
+    id: "study",
+    name: "Study Sprint",
+    tasks: ["Revise notes", "Solve one difficult problem", "Summarize takeaways"]
+  }
+];
+
 function TaskList({ title, count, emptyCopy, tasks, actions, selectedTaskId }) {
   return (
     <div className="task-column">
@@ -50,6 +68,8 @@ export function PlanningPanel() {
   const addTask = useWorkflowStore(state => state.addTask);
   const updateTask = useWorkflowStore(state => state.updateTask);
   const deleteTask = useWorkflowStore(state => state.deleteTask);
+  const carryForwardTasks = useWorkflowStore(state => state.carryForwardTasks);
+  const carryForwardTask = useWorkflowStore(state => state.carryForwardTask);
 
   const [draftTask, setDraftTask] = useState("");
   const [quickComplete, setQuickComplete] = useState(false);
@@ -68,6 +88,15 @@ export function PlanningPanel() {
 
     setDraftTask("");
     setQuickComplete(false);
+  }
+
+  async function applyTemplate(tasksToCreate) {
+    for (const taskTitle of tasksToCreate) {
+      await addTask({
+        title: taskTitle,
+        completedWithoutFocus: false
+      });
+    }
   }
 
   return (
@@ -94,6 +123,38 @@ export function PlanningPanel() {
         <button type="button" className="ghost-button" onClick={saveJournal}>
           Save intention
         </button>
+        <span className="micro-copy">Press `Enter` in the task field to add quickly.</span>
+      </div>
+
+      {carryForwardTasks.length > 0 ? (
+        <div className="coach-card">
+          <div className="coach-copy">
+            <p className="eyebrow">Morning carry-forward</p>
+            <h3>{carryForwardTasks.length} unfinished task{carryForwardTasks.length === 1 ? "" : "s"} from yesterday</h3>
+            <p className="micro-copy">Bring forward only what still deserves your attention.</p>
+          </div>
+
+          <div className="coach-actions wrap">
+            {carryForwardTasks.map(task => (
+              <button key={task.id} type="button" className="ghost-button" onClick={() => carryForwardTask(task.title)}>
+                Carry "{task.title}"
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="template-row">
+        {ROUTINE_TEMPLATES.map(template => (
+          <button
+            key={template.id}
+            type="button"
+            className="ghost-button"
+            onClick={() => applyTemplate(template.tasks)}
+          >
+            Use {template.name}
+          </button>
+        ))}
       </div>
 
       <form className="task-form" onSubmit={handleAddTask}>

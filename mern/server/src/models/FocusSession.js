@@ -8,7 +8,7 @@ const focusSessionSchema = new mongoose.Schema(
     sessionType: { type: String, enum: ["focus", "break", "longbreak"], default: "focus" },
     plannedMinutes: { type: Number, required: true, min: 0, max: 60 },
     remainingSeconds: { type: Number, required: true, min: 0, max: 3600 },
-    ambientSound: { type: String, default: "" },
+    ambientSound: { type: String, enum: ["", "rain", "wind", "waterfall", "snow"], default: "" },
     status: { type: String, enum: ["running", "paused", "completed", "cancelled"], default: "running" },
     startedAt: { type: Date, default: Date.now },
     lastResumedAt: { type: Date, default: Date.now },
@@ -19,5 +19,14 @@ const focusSessionSchema = new mongoose.Schema(
 
 focusSessionSchema.index({ userId: 1, status: 1 });
 focusSessionSchema.index({ userId: 1, date: 1 });
+focusSessionSchema.index(
+  { userId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      status: { $in: ["running", "paused"] }
+    }
+  }
+);
 
 export const FocusSession = mongoose.model("FocusSession", focusSessionSchema);

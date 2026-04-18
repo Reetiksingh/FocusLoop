@@ -3,6 +3,11 @@ import { Task } from "../models/Task.js";
 import { AppError } from "../utils/AppError.js";
 import { completeSession, hydrateActiveSession } from "../services/sessionService.js";
 import { syncDailyActivity } from "../services/activityService.js";
+import {
+  validateDateParam,
+  validateRemainingSecondsPayload,
+  validateSessionCreatePayload
+} from "../validators/requestValidators.js";
 
 function serializeSession(session) {
   if (!session) return null;
@@ -36,16 +41,22 @@ export async function getActiveSession(req, res) {
 
 export async function listSessions(req, res) {
   const query = { userId: req.userId };
-  if (req.query.date) query.date = req.query.date;
+  if (req.query.date) query.date = validateDateParam(req.query.date, "Session date");
 
   const sessions = await FocusSession.find(query).sort({ createdAt: -1 }).limit(50).populate("taskId");
   res.json({ sessions: sessions.map(serializeSession) });
 }
 
 export async function createSession(req, res) {
-  const { taskId = null, date, sessionType = "focus", plannedMinutes, ambientSound = "" } = req.body;
-  if (!date || typeof plannedMinutes !== "number") {
-    throw new AppError("Session date and plannedMinutes are required.", 400);
+  const { taskId = null, date, sessionType = "focus", plannedMinutes, ambientSound = "" } =
+    validateSessionCreatePayload(req.body);
+
+  if (sessionType === "focus" && !taskId) {
+    throw new AppError("A focus session must be attached to a task.", 400);
+  }
+
+  if (sessionType !== "focus" && taskId) {
+    throw new AppError("Only focus sessions can be attached to a task.", 400);
   }
 
   const existing = await FocusSession.findOne({
@@ -62,6 +73,15 @@ export async function createSession(req, res) {
     task = await Task.findOne({ _id: taskId, userId: req.userId });
     if (!task) {
       throw new AppError("Associated task not found.", 404);
+    }
+    if (task.status === "completed") {
+      throw new AppError("Completed tasks cannot be focused again.", 409);
+    }
+    if (!task.requiresFocus && sessionType === "focus") {
+      throw new AppError("Quick tasks should be completed without focus.", 409);
+    }
+    if (task.date !== date) {
+      throw new AppError("Task date must match the session date.", 409);
     }
     if (task.status === "planned") {
       task.status = "in_progress";
@@ -90,7 +110,7 @@ export async function createSession(req, res) {
 }
 
 export async function pauseCurrentSession(req, res) {
-  const { remainingSeconds } = req.body;
+  const { remainingSeconds } = validateRemainingSecondsPayload(req.body);
   const session = await FocusSession.findOne({
     _id: req.params.sessionId,
     userId: req.userId,
@@ -109,7 +129,7 @@ export async function pauseCurrentSession(req, res) {
 }
 
 export async function resumeCurrentSession(req, res) {
-  const { remainingSeconds } = req.body;
+  const { remainingSeconds } = validateRemainingSecondsPayload(req.body);
   const session = await FocusSession.findOne({
     _id: req.params.sessionId,
     userId: req.userId,

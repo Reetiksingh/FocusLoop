@@ -33,7 +33,6 @@ export function FocusPanel() {
   const resumeSession = useWorkflowStore(state => state.resumeSession);
   const completeSession = useWorkflowStore(state => state.completeSession);
   const cancelSession = useWorkflowStore(state => state.cancelSession);
-  const tickSession = useWorkflowStore(state => state.tickSession);
   const updateTask = useWorkflowStore(state => state.updateTask);
   const setStatusMessage = useWorkflowStore(state => state.setStatusMessage);
 
@@ -46,6 +45,7 @@ export function FocusPanel() {
   const displayedSeconds = activeSession?.remainingSeconds ?? settings.durations[phase] * 60;
   const running = activeSession?.status === "running";
   const paused = activeSession?.status === "paused";
+  const coach = summary.coach;
 
   useEffect(() => {
     if (!activeSession || activeSession.status !== "running") {
@@ -114,6 +114,13 @@ export function FocusPanel() {
     setAudioError("");
 
     try {
+      if (running) {
+        setAudioError("Pause the current session before previewing a different sound.");
+        return;
+      }
+
+      stopAllAudio();
+
       if (previewAudioRef.current) {
         previewAudioRef.current.pause();
         previewAudioRef.current.currentTime = 0;
@@ -161,6 +168,7 @@ export function FocusPanel() {
           <button
             key={option.value}
             type="button"
+            disabled={Boolean(activeSession)}
             className={phase === option.value ? "active" : ""}
             onClick={() => setPhase(option.value)}
           >
@@ -270,6 +278,19 @@ export function FocusPanel() {
             </label>
           </div>
 
+          <div className={`coach-card ${coach.rescueMode ? "rescue-card" : ""}`}>
+            <div className="coach-copy">
+              <p className="eyebrow">{coach.rescueMode ? "Focus rescue mode" : "Smart recommendation"}</p>
+              <h3>{coach.rescueMode ? "Shrink the target and rebuild momentum." : "Your current rhythm looks stable."}</h3>
+              <p className="micro-copy">{coach.rescueMessage}</p>
+            </div>
+            <div className="coach-actions">
+              <button type="button" className="ghost-button" onClick={() => setDuration("focus", coach.recommendedFocusMinutes)}>
+                Use {coach.recommendedFocusMinutes} min focus
+              </button>
+            </div>
+          </div>
+
           <label className="field-block">
             <span>Ambient sound</span>
             <select value={settings.ambientSound} onChange={event => setAmbientSound(event.target.value)}>
@@ -282,7 +303,7 @@ export function FocusPanel() {
           </label>
 
           <div className="control-row">
-            <button type="button" className="ghost-button" onClick={handlePreviewSound}>
+            <button type="button" className="ghost-button" onClick={handlePreviewSound} disabled={running}>
               Preview sound
             </button>
             <button type="button" className="ghost-button" onClick={stopAllAudio}>
@@ -300,6 +321,8 @@ export function FocusPanel() {
           </label>
 
           {audioError ? <p className="form-error">{audioError}</p> : null}
+
+          <p className="micro-copy">Keyboard: `Space` start/pause, `Esc` cancel, `1/2/3` switch phase when idle.</p>
 
           <div className="focus-stats">
             <article className="metric-card">

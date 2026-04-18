@@ -1,6 +1,7 @@
 import { Task } from "../models/Task.js";
 import { syncDailyActivity } from "../services/activityService.js";
 import { AppError } from "../utils/AppError.js";
+import { validateDateParam, validateTaskCreatePayload, validateTaskUpdatePayload } from "../validators/requestValidators.js";
 
 function normalizeTask(task) {
   return {
@@ -17,20 +18,14 @@ function normalizeTask(task) {
 }
 
 export async function listTasks(req, res) {
-  const date = req.query.date;
-  if (!date) {
-    throw new AppError("Query parameter date is required.", 400);
-  }
+  const date = validateDateParam(req.query.date, "Task date");
 
   const tasks = await Task.find({ userId: req.userId, date }).sort({ createdAt: 1 });
   res.json({ tasks: tasks.map(normalizeTask) });
 }
 
 export async function createTask(req, res) {
-  const { title, date, requiresFocus = true, completedWithoutFocus = false } = req.body;
-  if (!title || !date) {
-    throw new AppError("Task title and date are required.", 400);
-  }
+  const { title, date, requiresFocus = true, completedWithoutFocus = false } = validateTaskCreatePayload(req.body);
 
   const task = await Task.create({
     userId: req.userId,
@@ -53,14 +48,8 @@ export async function updateTask(req, res) {
   }
 
   const originalDate = task.date;
-  const {
-    title,
-    date,
-    status,
-    requiresFocus,
-    completedWithoutFocus,
-    focusSessionCount
-  } = req.body;
+  const { title, date, status, requiresFocus, completedWithoutFocus, focusSessionCount } =
+    validateTaskUpdatePayload(req.body);
 
   if (typeof title === "string") task.title = title.trim();
   if (typeof date === "string") task.date = date;
@@ -71,6 +60,14 @@ export async function updateTask(req, res) {
   if (typeof status === "string") {
     task.status = status;
     task.completedAt = status === "completed" ? new Date() : null;
+  }
+
+  if (!task.requiresFocus && task.status === "in_progress") {
+    task.status = "planned";
+  }
+
+  if (!task.requiresFocus && task.completedWithoutFocus === false && task.status === "completed") {
+    task.completedWithoutFocus = true;
   }
 
   await task.save();

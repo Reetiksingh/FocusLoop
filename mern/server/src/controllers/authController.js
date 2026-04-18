@@ -8,6 +8,7 @@ import {
   signRefreshToken,
   verifyRefreshToken
 } from "../utils/authTokens.js";
+import { validateLoginPayload, validateRegisterPayload } from "../validators/requestValidators.js";
 
 function sanitizeUser(user) {
   return {
@@ -33,13 +34,7 @@ async function issueTokens(user, res) {
 }
 
 export async function register(req, res) {
-  const { name, email, password, timezone } = req.body;
-  if (!name || !email || !password) {
-    throw new AppError("Name, email, and password are required.", 400);
-  }
-  if (password.length < 8) {
-    throw new AppError("Password must be at least 8 characters long.", 400);
-  }
+  const { name, email, password, timezone } = validateRegisterPayload(req.body);
 
   const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
   if (existingUser) {
@@ -59,10 +54,7 @@ export async function register(req, res) {
 }
 
 export async function login(req, res) {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    throw new AppError("Email and password are required.", 400);
-  }
+  const { email, password } = validateLoginPayload(req.body);
 
   const user = await User.findOne({ email: email.toLowerCase().trim() });
   if (!user) {
@@ -91,6 +83,10 @@ export async function refresh(req, res) {
   }
 
   const accessToken = signAccessToken(user._id.toString());
+  const refreshToken = signRefreshToken(user._id.toString());
+  user.refreshTokenHash = hashToken(refreshToken);
+  await user.save();
+  res.cookie("lifepro_refresh_token", refreshToken, getRefreshCookieOptions());
   res.json({
     user: sanitizeUser(user),
     accessToken

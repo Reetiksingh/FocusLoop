@@ -4,7 +4,9 @@ export function ReflectionPanel() {
   const journal = useWorkflowStore(state => state.journal);
   const setJournalField = useWorkflowStore(state => state.setJournalField);
   const saveJournal = useWorkflowStore(state => state.saveJournal);
+  const insertGuidedReflection = useWorkflowStore(state => state.insertGuidedReflection);
   const summary = useWorkflowStore(state => state.summary);
+  const weeklyReport = useWorkflowStore(state => state.weeklyReport);
   const tasks = useWorkflowStore(state => state.tasks);
   const activeSession = useWorkflowStore(state => state.activeSession);
 
@@ -43,8 +45,28 @@ export function ReflectionPanel() {
         <button type="button" onClick={saveJournal}>
           Save reflection
         </button>
+        <button type="button" className="ghost-button" onClick={insertGuidedReflection}>
+          Use guided prompt
+        </button>
         <span className="micro-copy">{journal.dirty ? "Unsaved changes" : "Saved state is synced"}</span>
       </div>
+
+      {summary.closureNeeded ? (
+        <div className="coach-card closure-card">
+          <div className="coach-copy">
+            <p className="eyebrow">End-of-day closure</p>
+            <h3>Your tasks are done. Close the day while the signal is still fresh.</h3>
+            <p className="micro-copy">
+              Capture what worked, what caused friction, and what tomorrow should inherit.
+            </p>
+          </div>
+          <div className="coach-actions">
+            <button type="button" onClick={insertGuidedReflection}>
+              Start guided reflection
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="insight-card">
         <h3>Workflow insights</h3>
@@ -52,6 +74,18 @@ export function ReflectionPanel() {
           {insights.map(line => (
             <li key={line}>{line}</li>
           ))}
+        </ul>
+      </div>
+
+      <div className="insight-card">
+        <h3>Weekly discipline report</h3>
+        <p className="micro-copy">{weeklyReport.headline}</p>
+        <ul className="insight-list">
+          <li>{weeklyReport.totalCompletedTasks} tasks completed this week.</li>
+          <li>{weeklyReport.totalFocusSessions} focus sessions completed this week.</li>
+          <li>{weeklyReport.reflectionDays} reflection day{weeklyReport.reflectionDays === 1 ? "" : "s"} saved.</li>
+          <li>{weeklyReport.cancelledSessions} session{weeklyReport.cancelledSessions === 1 ? "" : "s"} were cancelled.</li>
+          <li>Best day this week: {weeklyReport.bestDay || "Not enough data yet"}.</li>
         </ul>
       </div>
     </section>

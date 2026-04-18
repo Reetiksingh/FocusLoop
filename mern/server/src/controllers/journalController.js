@@ -1,9 +1,9 @@
 import { Journal } from "../models/Journal.js";
 import { syncDailyActivity } from "../services/activityService.js";
-import { AppError } from "../utils/AppError.js";
+import { validateDateParam, validateJournalPayload } from "../validators/requestValidators.js";
 
 export async function getJournalByDate(req, res) {
-  const { date } = req.params;
+  const date = validateDateParam(req.params.date, "Journal date");
   const journal = await Journal.findOne({ userId: req.userId, date });
 
   res.json({
@@ -23,11 +23,8 @@ export async function getJournalByDate(req, res) {
 }
 
 export async function upsertJournal(req, res) {
-  const { date } = req.params;
-  const { intention = "", content = "" } = req.body;
-  if (!date) {
-    throw new AppError("A journal date is required.", 400);
-  }
+  const date = validateDateParam(req.params.date, "Journal date");
+  const { intention = "", content = "" } = validateJournalPayload(req.body);
 
   const journal = await Journal.findOneAndUpdate(
     { userId: req.userId, date },

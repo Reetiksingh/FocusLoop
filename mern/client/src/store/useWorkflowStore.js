@@ -13,6 +13,7 @@ export const useWorkflowStore = create(
     (set, get) => ({
       selectedDate: getToday(),
       tasks: [],
+      carryForwardTasks: [],
       journal: {
         intention: "",
         content: "",
@@ -23,7 +24,23 @@ export const useWorkflowStore = create(
         completedTasks: 0,
         focusSessions: 0,
         reflectionSaved: false,
-        activeStreak: 0
+        activeStreak: 0,
+        closureNeeded: false,
+        coach: {
+          rescueMode: false,
+          rescueMessage: "",
+          recommendedFocusMinutes: 25,
+          pendingTasks: 0,
+          quickWins: 0
+        }
+      },
+      weeklyReport: {
+        totalCompletedTasks: 0,
+        totalFocusSessions: 0,
+        reflectionDays: 0,
+        cancelledSessions: 0,
+        bestDay: "",
+        headline: ""
       },
       heatmap: [],
       activeTaskId: "",
@@ -44,7 +61,11 @@ export const useWorkflowStore = create(
 
       setSelectedDate: date => set({ selectedDate: date }),
 
-      setPhase: phase => set({ phase }),
+      setPhase: phase =>
+        set(state => {
+          if (state.activeSession) return state;
+          return { phase };
+        }),
 
       setActiveTaskId: activeTaskId => set({ activeTaskId }),
 
@@ -86,6 +107,8 @@ export const useWorkflowStore = create(
 
       setStatusMessage: statusMessage => set({ statusMessage }),
 
+      dismissStatusMessage: () => set({ statusMessage: "" }),
+
       tickSession: () =>
         set(state => {
           if (!state.activeSession) return state;
@@ -101,32 +124,56 @@ export const useWorkflowStore = create(
         set({ loading: true });
 
         try {
-          const [tasksResponse, journalResponse, summaryResponse, heatmapResponse, sessionResponse] = await Promise.all([
+          const requests = [
             api.get(`/tasks?date=${date}`),
             api.get(`/journal/${date}`),
             api.get(`/stats/summary?date=${date}`),
             api.get("/stats/heatmap?days=35"),
             api.get("/sessions/active")
-          ]);
+          ];
+
+          if (date === getToday()) {
+            const previousDate = new Date();
+            previousDate.setDate(previousDate.getDate() - 1);
+            const previousDateIso = previousDate.toISOString().split("T")[0];
+            requests.push(api.get(`/tasks?date=${previousDateIso}`));
+          }
+
+          const [tasksResponse, journalResponse, summaryResponse, heatmapResponse, sessionResponse, previousDayTasksResponse] =
+            await Promise.all(requests);
 
           const tasks = tasksResponse.data.tasks;
           const activeSession = sessionResponse.data.session;
           const focusableTask = tasks.find(task => task.status !== "completed" && task.requiresFocus);
+          const carryForwardTasks =
+            date === getToday()
+              ? (previousDayTasksResponse?.data?.tasks || []).filter(
+                  task =>
+                    task.status !== "completed" &&
+                    !tasks.some(currentTask => currentTask.title.toLowerCase() === task.title.toLowerCase())
+                )
+              : [];
 
           set(state => ({
             tasks,
+            carryForwardTasks,
             journal: {
               intention: journalResponse.data.journal.intention,
               content: journalResponse.data.journal.content,
               dirty: false
             },
             summary: summaryResponse.data.summary,
+            weeklyReport: summaryResponse.data.weeklyReport,
             heatmap: heatmapResponse.data.heatmap,
             activeSession,
             activeTaskId:
               activeSession?.taskId ||
-              (tasks.some(task => task.id === state.activeTaskId) ? state.activeTaskId : focusableTask?.id || ""),
-            phase: activeSession?.sessionType || state.phase,
+              (tasks.some(
+                task => task.id === state.activeTaskId && task.status !== "completed" && task.requiresFocus
+              )
+                ? state.activeTaskId
+                : focusableTask?.id || ""),
+            phase: activeSession?.sessionType || (state.activeSession ? state.activeSession.sessionType : state.phase),
             initialized: true,
             loading: false,
             statusMessage: ""
@@ -149,6 +196,7 @@ export const useWorkflowStore = create(
 
         set({
           summary: summaryResponse.data.summary,
+          weeklyReport: summaryResponse.data.weeklyReport,
           heatmap: heatmapResponse.data.heatmap
         });
       },
@@ -163,6 +211,9 @@ export const useWorkflowStore = create(
 
         set(state => ({
           tasks: [...state.tasks, response.data.task],
+          carryForwardTasks: state.carryForwardTasks.filter(
+            task => task.title.toLowerCase() !== response.data.task.title.toLowerCase()
+          ),
           activeTaskId:
             !completedWithoutFocus && !state.activeTaskId ? response.data.task.id : state.activeTaskId,
           statusMessage: completedWithoutFocus
@@ -177,6 +228,16 @@ export const useWorkflowStore = create(
         const response = await api.patch(`/tasks/${taskId}`, payload);
         set(state => ({
           tasks: state.tasks.map(task => (task.id === taskId ? response.data.task : task)),
+          activeTaskId:
+            state.activeTaskId === taskId &&
+            (response.data.task.status === "completed" || !response.data.task.requiresFocus)
+              ? state.tasks.find(
+                  task =>
+                    task.id !== taskId &&
+                    task.status !== "completed" &&
+                    task.requiresFocus
+                )?.id || ""
+              : state.activeTaskId,
           statusMessage: "Task updated."
         }));
         await get().refreshStats();
@@ -186,7 +247,15 @@ export const useWorkflowStore = create(
         await api.delete(`/tasks/${taskId}`);
         set(state => ({
           tasks: state.tasks.filter(task => task.id !== taskId),
-          activeTaskId: state.activeTaskId === taskId ? "" : state.activeTaskId,
+          activeTaskId:
+            state.activeTaskId === taskId
+              ? state.tasks.find(
+                  task =>
+                    task.id !== taskId &&
+                    task.status !== "completed" &&
+                    task.requiresFocus
+                )?.id || ""
+              : state.activeTaskId,
           statusMessage: "Task removed."
         }));
         await get().refreshStats();
@@ -211,13 +280,50 @@ export const useWorkflowStore = create(
         await get().refreshStats();
       },
 
+      insertGuidedReflection: () =>
+        set(state => {
+          const template =
+            "What worked today?\n- \n\nWhat created friction?\n- \n\nWhat will I do differently tomorrow?\n- ";
+
+          return {
+            journal: {
+              ...state.journal,
+              content: state.journal.content.trim() ? state.journal.content : template,
+              dirty: true
+            }
+          };
+        }),
+
+      carryForwardTask: async taskTitle => {
+        await get().addTask({
+          title: taskTitle,
+          completedWithoutFocus: false
+        });
+
+        set(state => ({
+          carryForwardTasks: state.carryForwardTasks.filter(task => task.title !== taskTitle),
+          statusMessage: "Task carried forward into today."
+        }));
+      },
+
       startSession: async ({ sessionType = get().phase } = {}) => {
-        const { selectedDate, activeTaskId, settings } = get();
+        const { selectedDate, activeTaskId, settings, activeSession, tasks } = get();
         const focusSessionsBeforeStart = get().summary.focusSessions;
         const plannedMinutes = settings.durations[sessionType];
 
+        if (activeSession) {
+          throw new Error("Finish the current session before starting another.");
+        }
+
         if (sessionType === "focus" && !activeTaskId) {
           throw new Error("Select a task before starting focus.");
+        }
+
+        if (sessionType === "focus") {
+          const selectedTask = tasks.find(task => task.id === activeTaskId);
+          if (!selectedTask || selectedTask.status === "completed" || !selectedTask.requiresFocus) {
+            throw new Error("Choose an unfinished deep-work task before starting focus.");
+          }
         }
 
         const response = await api.post("/sessions", {
