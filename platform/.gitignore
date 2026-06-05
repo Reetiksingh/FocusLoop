@@ -1,5 +1,0 @@
-frontend/dist/
-frontend/node_modules/
-**/target/
-.idea/
-.DS_Store
