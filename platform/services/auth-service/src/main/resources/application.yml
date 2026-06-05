@@ -1,0 +1,47 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/focusloop}
+    username: ${POSTGRES_USER:focusloop}
+    password: ${POSTGRES_PASSWORD:focusloop}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: auth
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:placeholder}
+            client-secret: ${GOOGLE_CLIENT_SECRET:placeholder}
+            scope: openid,email,profile
+          github:
+            client-id: ${GITHUB_CLIENT_ID:placeholder}
+            client-secret: ${GITHUB_CLIENT_SECRET:placeholder}
+            scope: read:user,user:email
+          apple:
+            client-id: ${APPLE_CLIENT_ID:placeholder}
+            client-secret: ${APPLE_CLIENT_SECRET:placeholder}
+            scope: name,email
+
+security:
+  jwt:
+    issuer: ${JWT_ISSUER:focusloop}
+    secret: ${JWT_SECRET:change-me-change-me-change-me-change-me}
+    ttl: 15m
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    tags:
+      application: auth-service

@@ -1,0 +1,35 @@
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  application:
+    name: focus-session-service
+  datasource:
+    url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/focusloop}
+    username: ${POSTGRES_USER:focusloop}
+    password: ${POSTGRES_PASSWORD:focusloop}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+clients:
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8082}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    tags:
+      application: focus-session-service
